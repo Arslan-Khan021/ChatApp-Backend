@@ -22,25 +22,33 @@ public class AuthService : IAuthService
         _context = context;
         _jwtService = jwtService;
         _passwordHasher = new PasswordHasher<User>();
-        _mapper = mapper;   
+        _mapper = mapper;
     }
 
-    public async Task<(bool IsSuccess, string Message, string? Token, AuthResponse? authService)> RegisterAsync(RegisterRequest request)
+    public async Task<AuthResult> RegisterAsync(RegisterRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Email) ||
             string.IsNullOrWhiteSpace(request.Password) ||
             string.IsNullOrWhiteSpace(request.FirstName) ||
             string.IsNullOrWhiteSpace(request.LastName))
         {
-            return (false, "All fields are required.", null,null);
+            return new AuthResult
+            {
+                IsSuccess = false,
+                Message = "All fields are required."
+            };
         }
 
         var existingUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == request.Email);
+            .FirstOrDefaultAsync(u => u.Email == request.Email.ToLower());
 
         if (existingUser != null)
         {
-            return (false, "Email is already registered.", null,null);
+            return new AuthResult
+            {
+                IsSuccess = false,
+                Message = "Email is already registered."
+            };
         }
 
         var user = new User
@@ -56,19 +64,27 @@ public class AuthService : IAuthService
         await _context.SaveChangesAsync();
 
         var token = _jwtService.GetToken(user);
-     
-        AuthResponse response = _mapper.Map<AuthResponse>(user);
+        var authResponse = _mapper.Map<AuthResponse>(user);
 
-        return (true, "User registered successfully.", token,response);
+        return new AuthResult
+        {
+            IsSuccess = true,
+            Message = "User registered successfully.",
+            Token = token,
+            AuthData = authResponse
+        };
     }
 
-    
-    public async Task<(bool IsSuccess, string Message, string? Token, AuthResponse? authService)> LoginAsync(LoginRequest request)
+    public async Task<AuthResult> LoginAsync(LoginRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Email) ||
             string.IsNullOrWhiteSpace(request.Password))
         {
-            return (false, "Email and password are required.", null,null);
+            return new AuthResult
+            {
+                IsSuccess = false,
+                Message = "Email and password are required."
+            };
         }
 
         var user = await _context.Users
@@ -76,21 +92,33 @@ public class AuthService : IAuthService
 
         if (user == null)
         {
-            return (false, "Invalid email or password.", null, null);
+            return new AuthResult
+            {
+                IsSuccess = false,
+                Message = "Invalid email or password."
+            };
         }
 
-        var result = _passwordHasher.VerifyHashedPassword(
-            user,
-            user.PasswordHash,
-            request.Password);
+        var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
 
         if (result == PasswordVerificationResult.Failed)
         {
-            return (false, "Invalid email or password.", null, null );
+            return new AuthResult
+            {
+                IsSuccess = false,
+                Message = "Invalid email or password."
+            };
         }
 
         var token = _jwtService.GetToken(user);
-        AuthResponse response = _mapper.Map<AuthResponse>(user);
-        return (true, "Login successful.", token,response);
+        var authResponse = _mapper.Map<AuthResponse>(user);
+
+        return new AuthResult
+        {
+            IsSuccess = true,
+            Message = "Login successful.",
+            Token = token,
+            AuthData = authResponse
+        };
     }
 }

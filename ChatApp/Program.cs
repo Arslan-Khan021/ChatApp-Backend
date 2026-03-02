@@ -19,6 +19,7 @@ builder.Services.AddDbContext<ChatAppDbContext>
 
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IConversationService, ConversationService>();
 builder.Services.AddScoped<JWT>();
 builder.Services.AddAutoMapper(typeof(Program));
