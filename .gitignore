@@ -34,7 +34,7 @@ yarn-error.log*
 appsettings.Development.json
 appsettings.Local.json
 appsettings.*.local.json
-
+appsettings.json
 .env
 .env.*
 
