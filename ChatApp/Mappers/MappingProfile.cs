@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using ChatApp.DTOs.Auth;
+using ChatApp.Entities;
 
 namespace ChatApp.Mappers
 {
@@ -6,7 +8,7 @@ namespace ChatApp.Mappers
     {
         public MappingProfile()
         {
-
+            CreateMap<User,AuthResponse>();
         }
     }
 }

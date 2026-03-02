@@ -24,7 +24,7 @@ namespace ChatApp.Controllers
             if (!result.IsSuccess)
                 return BadRequest(result.Message);
 
-            return Ok(new { Token = result.Token });
+            return Ok(new { Token = result.Token, UserDetails=result.authService });
         }
 
         [HttpPost("login")]
@@ -35,7 +35,7 @@ namespace ChatApp.Controllers
             if (!result.IsSuccess)
                 return Unauthorized(result.Message);
 
-            return Ok(new { Token = result.Token });
+            return Ok(new { Token = result.Token, UserDetails = result.authService });
         }
     }
 }
