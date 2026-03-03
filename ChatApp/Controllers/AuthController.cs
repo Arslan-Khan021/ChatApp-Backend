@@ -1,4 +1,5 @@
 ﻿using ChatApp.DTOs.Auth;
+using ChatApp.Exceptions;
 using ChatApp.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -22,7 +23,7 @@ namespace ChatApp.Controllers
             var result = await _authService.RegisterAsync(request);
 
             if (!result.IsSuccess)
-                return BadRequest(result.Message);
+                throw new BadRequestException(result.Message);
 
             return Ok(new { Token = result.Token, UserDetails=result.AuthData });
         }
@@ -33,7 +34,7 @@ namespace ChatApp.Controllers
             var result = await _authService.LoginAsync(request);
 
             if (!result.IsSuccess)
-                return Unauthorized(result.Message);
+                throw new UnauthorizedException(result.Message);
 
             return Ok(new { Token = result.Token, UserDetails = result.AuthData });
         }

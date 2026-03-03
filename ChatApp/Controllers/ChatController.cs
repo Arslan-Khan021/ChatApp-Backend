@@ -33,5 +33,14 @@ namespace ChatApp.Controllers
             await conversationService.MarkConversationAsRead(conversationId);
             return Ok();
         }
+
+        [HttpGet("{conversationId}/messages")]
+        public async Task<IActionResult> GetMessages(int conversationId,int pageNumber = 1,int pageSize = 20)
+        {
+            var result = await conversationService
+                .GetConversationMessages(conversationId, pageNumber, pageSize);
+
+            return Ok(result);
+        }
     }
 }

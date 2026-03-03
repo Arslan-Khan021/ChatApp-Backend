@@ -1,4 +1,6 @@
 ﻿using ChatApp.DataContext;
+using ChatApp.DTOs.Chat;
+using ChatApp.DTOs.Helper;
 using ChatApp.Entities;
 using ChatApp.Exceptions;
 using ChatApp.Interfaces;
@@ -77,6 +79,48 @@ namespace ChatApp.Services
                     ConversationId = conversationId,
                     ReaderId = currentUserId
                 });
+        }
+
+        public async Task<PagedResponse<GetMessageResponse>> GetConversationMessages(
+     int conversationId,
+     int pageNumber,
+     int pageSize)
+        {
+            if (pageNumber <= 0) pageNumber = 1;
+            if (pageSize <= 0) pageSize = 20;
+
+            var query = _context.Messages
+                .Where(m => m.ConversationId == conversationId);
+
+            var totalCount = await query.CountAsync();
+
+            var messages = await query
+                .OrderByDescending(m => m.SentAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(m => new GetMessageResponse
+                {
+                    MessageId = m.MessageId,
+                    SenderId = m.SenderId,
+                    SenderName = m.Sender!.FirstName + " " + m.Sender!.LastName,
+                    MessageText = m.MessageText,
+                    SentAt = m.SentAt,
+                    IsRead = m.IsRead
+                })
+                .ToListAsync();
+
+            messages.Reverse();
+
+            var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+            return new PagedResponse<GetMessageResponse>
+            {
+                Items = messages,
+                CurrentPage = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages
+            };
         }
 
     }
