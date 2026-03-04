@@ -5,6 +5,7 @@ using ChatApp.Entities;
 using ChatApp.Exceptions;
 using ChatApp.Interfaces;
 using ChatApp.Utils;
+using ChatApp.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,8 +25,18 @@ namespace ChatApp.Services
 
         public async Task<int> CreateOrGetConversation(int currentUserId, int otherUserId)
         {
+            if (otherUserId <= 0)
+                throw new BadRequestException("Invalid otherUserId");
+
             if (currentUserId == otherUserId)
                 throw new ForbiddenException("Cannot create conversation with yourself");
+
+            var otherUserExists = await _context.Users
+                .AsNoTracking()
+                .AnyAsync(u => u.UserId == otherUserId);
+
+            if (!otherUserExists)
+                throw new NotFoundException("Other user not found");
 
             var user1 = Math.Min(currentUserId, otherUserId);
             var user2 = Math.Max(currentUserId, otherUserId);
@@ -42,7 +53,8 @@ namespace ChatApp.Services
             {
                 User1Id = user1,
                 User2Id = user2,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
 
             await _context.Conversations.AddAsync(conversation);
@@ -74,7 +86,7 @@ namespace ChatApp.Services
 
             await _hubContext.Clients
                 .Group($"conversation-{conversationId}")
-                .SendAsync("MessagesRead", new
+                .SendAsync("messagesRead", new
                 {
                     ConversationId = conversationId,
                     ReaderId = currentUserId

@@ -3,14 +3,24 @@ using ChatApp.Exceptions;
 using ChatApp.Interfaces;
 using ChatApp.Services;
 using ChatApp.Utils;
+using ChatApp.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
+using System.IdentityModel.Tokens.Jwt;
+
 var builder = WebApplication.CreateBuilder(args);
 
+// Clear default claim mapping to keep JWT claim names (like "UserId")
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+
 // Add services to the container.
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options => {
+        options.PayloadSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
 
 var config = builder.Configuration;
 builder.Services.AddDbContext<ChatAppDbContext>
@@ -23,9 +33,14 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IConversationService, ConversationService>();
 builder.Services.AddScoped<JWT>();
 builder.Services.AddAutoMapper(typeof(Program));
-builder.Services.AddSignalR();
-
-
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FrontendCors", policy =>
+        policy.WithOrigins("http://localhost:5173", "http://localhost:4173")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials());
+});
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -74,7 +89,6 @@ builder.Services.AddAuthentication(options =>
 
 
 var app = builder.Build();
-app.MapHub<ChatHub>("/chatHub");
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -83,13 +97,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 app.UseMiddleware<ExceptionMiddleware>();
-
+app.UseCors("FrontendCors");
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
 
 app.UseAuthorization();
 
+app.MapHub<ChatHub>("/chatHub");
 app.MapControllers();
 
 app.Run();
